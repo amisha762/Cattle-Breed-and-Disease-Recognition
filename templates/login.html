@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Image Based Breed Recognition of Cattle</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#03040d;--panel:rgba(8,12,32,0.92);
+  --c1:#00f5ff;--c2:#ff2d78;--c3:#aaff00;--c4:#ffd700;
+  --pu:#c084fc;--bl:#3b82f6;
+  --txt:#e8eeff;--mt:#6b7db3;
+  --br:rgba(0,245,255,0.12);
+  --g1:0 0 30px rgba(0,245,255,0.35),0 0 70px rgba(0,245,255,0.08);
+  --g2:0 0 30px rgba(255,45,120,0.35),0 0 70px rgba(255,45,120,0.08);
+  --g3:0 0 20px rgba(170,255,0,0.3);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);font-family:'Exo 2',sans-serif;color:var(--txt);min-height:100vh;overflow-x:hidden;}
+#hero-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+.aurora{position:fixed;border-radius:50%;filter:blur(90px);opacity:0.1;z-index:0;pointer-events:none;animation:aurMove 14s ease-in-out infinite alternate;}
+.a1{width:700px;height:700px;background:#00f5ff;top:-250px;left:-200px;animation-duration:16s;}
+.a2{width:600px;height:600px;background:#ff2d78;bottom:-250px;right:-150px;animation-duration:20s;animation-delay:-6s;}
+.a3{width:450px;height:450px;background:#c084fc;top:35%;left:35%;animation-duration:11s;animation-delay:-3s;}
+@keyframes aurMove{0%{transform:translate(0,0) scale(1);}100%{transform:translate(70px,50px) scale(1.12);}}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;background:var(--bg);z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity 1s,visibility 1s;}
+#splash.hidden{opacity:0;visibility:hidden;}
+.sp-cow{font-size:4rem;animation:spPulse 0.8s ease-in-out infinite alternate;}
+@keyframes spPulse{from{transform:scale(1);}to{transform:scale(1.1);}}
+.sp-title{font-family:'Orbitron',monospace;font-size:1.1rem;letter-spacing:8px;color:var(--c1);text-transform:uppercase;}
+.sp-bar{width:280px;height:3px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;}
+.sp-fill{height:100%;background:linear-gradient(90deg,var(--c1),var(--pu),var(--c2));border-radius:2px;animation:spFill 2s ease forwards;}
+@keyframes spFill{from{width:0%;}to{width:100%;}}
+.sp-pct{font-family:'Share Tech Mono',monospace;font-size:0.85rem;color:var(--mt);}
+.sp-steps{font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--mt);letter-spacing:2px;height:16px;}
+
+/* LOGIN */
+#loginOverlay{position:fixed;inset:0;background:rgba(3,4,13,0.97);z-index:1500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);}
+#loginOverlay.hidden{display:none;}
+.login-box{background:var(--panel);border:1px solid var(--br);border-radius:20px;padding:44px 40px;width:420px;max-width:95vw;position:relative;overflow:hidden;animation:fadeUp 0.6s ease;}
+.login-box::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--c1),var(--pu),var(--c2));}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo .icon{font-size:2.8rem;display:block;margin-bottom:8px;}
+.login-logo h2{font-family:'Orbitron',monospace;font-size:1.2rem;color:var(--c1);letter-spacing:3px;}
+.login-logo p{font-size:0.78rem;color:var(--mt);letter-spacing:2px;margin-top:4px;text-transform:uppercase;}
+.inp-group{margin-bottom:18px;}
+.inp-group label{display:block;font-size:0.72rem;color:var(--mt);letter-spacing:2px;text-transform:uppercase;margin-bottom:7px;font-weight:600;}
+.inp-group input{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--txt);font-family:'Exo 2',sans-serif;font-size:0.95rem;padding:12px 16px;outline:none;transition:border-color 0.2s,box-shadow 0.2s;}
+.inp-group input:focus{border-color:var(--c1);box-shadow:0 0 0 3px rgba(0,245,255,0.08);}
+.login-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--c2),var(--pu),#7c3aed);border:none;border-radius:10px;color:#fff;font-family:'Orbitron',monospace;font-size:0.9rem;font-weight:700;letter-spacing:3px;cursor:pointer;text-transform:uppercase;transition:transform 0.2s,box-shadow 0.2s;box-shadow:0 6px 28px rgba(255,45,120,0.4);}
+.login-btn:hover{transform:translateY(-2px);box-shadow:0 10px 40px rgba(255,45,120,0.6);}
+.login-hint{text-align:center;margin-top:14px;font-size:0.78rem;color:var(--mt);}
+.login-hint span{color:var(--c1);cursor:pointer;}
+.login-err{color:var(--c2);font-size:0.8rem;text-align:center;margin-top:8px;height:16px;}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;background:rgba(3,4,13,0.92);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.05);padding:0 28px;height:58px;display:flex;align-items:center;justify-content:space-between;}
+.tb-brand{display:flex;align-items:center;gap:10px;font-family:'Orbitron',monospace;font-size:0.9rem;font-weight:700;color:var(--c1);letter-spacing:2px;}
+.tb-brand .tb-icon{font-size:1.4rem;}
+.tb-right{display:flex;align-items:center;gap:14px;}
+.tb-user{display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--mt);}
+.tb-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--c1),var(--pu));display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;color:#000;}
+.tb-logout{background:rgba(255,45,120,0.1);border:1px solid rgba(255,45,120,0.2);color:var(--c2);font-family:'Exo 2',sans-serif;font-size:0.75rem;font-weight:600;padding:5px 12px;border-radius:6px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:all 0.2s;}
+.tb-logout:hover{background:rgba(255,45,120,0.2);box-shadow:var(--g2);}
+
+/* CONTAINER */
+.container{position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:0 24px 80px;}
+
+/* HEADER */
+header{text-align:center;padding:48px 20px 32px;}
+.hdr-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,245,255,0.06);border:1px solid var(--br);border-radius:20px;padding:5px 16px;font-size:0.72rem;letter-spacing:3px;color:var(--c1);text-transform:uppercase;margin-bottom:18px;animation:fadeDown 0.6s ease both;}
+.bdot{width:6px;height:6px;border-radius:50%;background:var(--c3);box-shadow:0 0 8px var(--c3);animation:blink 1.5s infinite;}
+.cow-wrap{position:relative;width:72px;height:72px;}
+.cow-wrap::before{content:'';position:absolute;inset:-7px;border-radius:50%;background:conic-gradient(var(--c1),var(--pu),var(--c2),var(--c1));animation:spinRing 4s linear infinite;}
+.cow-wrap::after{content:'';position:absolute;inset:0;border-radius:50%;background:var(--bg);}
+.cow-emoji{position:relative;z-index:1;font-size:2.8rem;display:flex;align-items:center;justify-content:center;width:100%;height:100%;}
+h1{font-family:'Orbitron',monospace;font-size:clamp(1.8rem,4.5vw,3.2rem);font-weight:900;line-height:1.2;}
+h1 .w1{color:var(--c1);text-shadow:0 0 30px rgba(0,245,255,0.5);}
+h1 .w2{color:var(--txt);}
+h1 .w3{color:var(--c2);text-shadow:0 0 30px rgba(255,45,120,0.5);}
+h1 .w4{background:linear-gradient(135deg,var(--pu),var(--c4));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.subtitle{font-size:0.88rem;color:var(--mt);letter-spacing:3px;text-transform:uppercase;margin-top:10px;animation:fadeDown 0.8s ease 0.2s both;}
+.divider{height:2px;margin:24px auto;max-width:600px;overflow:hidden;background:linear-gradient(90deg,transparent,var(--c1),var(--pu),var(--c2),transparent);background-size:300% 100%;animation:fadeDown 0.9s ease 0.3s both,shimmer 3s linear infinite;}
+@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-200% 0}}
+.stats-row{display:flex;justify-content:center;gap:36px;flex-wrap:wrap;margin-bottom:32px;}
+.stat-item{text-align:center;}
+.stat-val{font-family:'Orbitron',monospace;font-size:1.4rem;font-weight:900;background:linear-gradient(135deg,var(--c1),var(--pu));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.stat-lbl{font-size:0.7rem;color:var(--mt);letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+
+/* NAV */
+nav{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:40px;}
+.nav-btn{background:transparent;border:1px solid rgba(255,255,255,0.08);color:var(--mt);font-family:'Exo 2',sans-serif;font-size:0.82rem;font-weight:600;letter-spacing:1.5px;padding:9px 20px;cursor:pointer;border-radius:6px;display:flex;align-items:center;gap:7px;text-transform:uppercase;transition:all 0.3s ease;position:relative;overflow:hidden;}
+.nav-btn::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:0;height:2px;background:var(--c1);transition:width 0.3s;}
+.nav-btn:hover::after{width:80%;}
+.nav-btn:hover{border-color:rgba(0,245,255,0.3);color:var(--txt);background:rgba(0,245,255,0.04);}
+.nav-btn.active{border-color:var(--c2);color:#fff;background:rgba(255,45,120,0.08);box-shadow:var(--g2);}
+.nav-btn.active::after{width:80%;background:var(--c2);}
+
+/* PANEL */
+.panel{background:var(--panel);backdrop-filter:blur(20px);border:1px solid var(--br);border-radius:16px;padding:26px;position:relative;overflow:hidden;}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--c1),var(--pu),var(--c2));}
+.panel::after{content:'';position:absolute;bottom:0;right:0;width:60px;height:60px;background:linear-gradient(225deg,rgba(0,245,255,0.05),transparent);border-top-left-radius:60px;}
+.panel-title{font-family:'Orbitron',monospace;font-size:0.72rem;letter-spacing:4px;color:var(--c1);text-transform:uppercase;margin-bottom:20px;display:flex;align-items:center;gap:10px;}
+.panel-title .ti{width:28px;height:28px;border-radius:6px;background:rgba(0,245,255,0.1);border:1px solid rgba(0,245,255,0.2);display:flex;align-items:center;justify-content:center;font-size:0.9rem;}
+.panel-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(0,245,255,0.2),transparent);}
+
+/* MAIN GRID */
+.main-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;animation:fadeUp 0.7s ease both;}
+@media(max-width:800px){.main-grid{grid-template-columns:1fr;}}
+
+/* INPUT TABS */
+.input-tabs{display:flex;gap:6px;margin-bottom:16px;}
+.itab{flex:1;padding:9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--mt);font-family:'Exo 2',sans-serif;font-size:0.8rem;font-weight:600;letter-spacing:1px;cursor:pointer;text-transform:uppercase;text-align:center;transition:all 0.25s;}
+.itab.active{background:rgba(0,245,255,0.08);border-color:rgba(0,245,255,0.3);color:var(--c1);box-shadow:var(--g1);}
+.input-area>div{display:none;}
+.input-area>div.show{display:block;}
+
+/* UPLOAD */
+.upload-zone{border:2px dashed rgba(0,245,255,0.15);border-radius:12px;padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.3s;background:rgba(0,245,255,0.02);}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--c1);background:rgba(0,245,255,0.05);transform:translateY(-2px);box-shadow:var(--g1);}
+.upload-ring{width:60px;height:60px;border-radius:50%;border:2px solid rgba(0,245,255,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;animation:upPulse 3s ease-in-out infinite;}
+@keyframes upPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,245,255,0.2);}50%{box-shadow:0 0 0 10px rgba(0,245,255,0);}}
+.upload-ring span{font-size:1.6rem;}
+.upload-zone p{color:var(--mt);font-size:0.88rem;margin-bottom:4px;}
+.upload-zone .hint{font-size:0.75rem;color:#3a4470;letter-spacing:1px;}
+#fileInput{display:none;}
+.preview-img{width:100%;max-height:190px;object-fit:cover;border-radius:10px;display:none;border:1px solid var(--br);box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+
+/* WEBCAM */
+.webcam-wrap{border-radius:12px;overflow:hidden;position:relative;background:#000;border:1px solid rgba(0,245,255,0.2);}
+#webcamVideo{width:100%;max-height:220px;object-fit:cover;display:block;}
+.webcam-controls{display:flex;gap:8px;margin-top:10px;}
+.wc-btn{flex:1;padding:9px;border:1px solid rgba(0,245,255,0.2);background:rgba(0,245,255,0.06);color:var(--c1);font-family:'Exo 2',sans-serif;font-size:0.78rem;font-weight:600;letter-spacing:1px;border-radius:8px;cursor:pointer;text-transform:uppercase;transition:all 0.2s;}
+.wc-btn:hover{background:rgba(0,245,255,0.12);box-shadow:var(--g1);}
+.wc-btn.red{border-color:rgba(255,45,120,0.3);background:rgba(255,45,120,0.06);color:var(--c2);}
+.wc-btn.red:hover{background:rgba(255,45,120,0.12);}
+.webcam-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;}
+.scan-frame{width:160px;height:160px;position:relative;}
+.scan-frame::before,.scan-frame::after{content:'';position:absolute;width:30px;height:30px;border-color:var(--c1);border-style:solid;border-width:0;}
+.scan-frame::before{top:0;left:0;border-top-width:2px;border-left-width:2px;}
+.scan-frame::after{bottom:0;right:0;border-bottom-width:2px;border-right-width:2px;}
+.scan-line-anim{position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent,var(--c1),transparent);animation:scanLine 2s ease-in-out infinite;}
+@keyframes scanLine{0%{top:0;opacity:1;}100%{top:160px;opacity:0;}}
+
+/* FORM */
+.form-group{margin-top:16px;}
+label{display:flex;align-items:center;gap:6px;font-size:0.72rem;letter-spacing:2px;color:var(--mt);margin-bottom:7px;text-transform:uppercase;font-weight:600;}
+select{width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--txt);font-family:'Exo 2',sans-serif;font-size:0.92rem;padding:10px 36px 10px 14px;outline:none;transition:border-color 0.2s,box-shadow 0.2s;appearance:none;cursor:pointer;}
+select:focus{border-color:var(--c1);box-shadow:0 0 0 3px rgba(0,245,255,0.08);}
+.sw{position:relative;}
+.sw::after{content:'◂';position:absolute;right:14px;top:50%;transform:translateY(-50%) rotate(-90deg);color:var(--c1);pointer-events:none;font-size:0.8rem;}
+
+/* ══════════════════════════════════════
+   DETECT BUTTONS — 3 buttons layout
+══════════════════════════════════════ */
+.detect-btns-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;}
+.detect-btns-grid .btn-both{grid-column:1/-1;}/* full width */
+
+.detect-btn{width:100%;padding:13px;border:none;border-radius:10px;color:#fff;font-family:'Orbitron',monospace;font-size:0.78rem;font-weight:700;letter-spacing:2px;cursor:pointer;text-transform:uppercase;position:relative;overflow:hidden;transition:transform 0.2s,box-shadow 0.2s;}
+.detect-btn .sh{position:absolute;top:-50%;left:-100%;width:60%;height:200%;background:linear-gradient(105deg,transparent,rgba(255,255,255,0.18),transparent);transform:skewX(-15deg);transition:left 0.6s ease;}
+.detect-btn:hover .sh{left:150%;}
+.detect-btn:hover{transform:translateY(-3px);}
+.detect-btn:disabled{opacity:0.45;cursor:not-allowed;transform:none;box-shadow:none;}
+.detect-btn .bt{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:7px;}
+
+.btn-breed{background:linear-gradient(135deg,#ff2d78,#c084fc,#7c3aed);box-shadow:0 6px 28px rgba(255,45,120,0.45);}
+.btn-breed:hover{box-shadow:0 10px 40px rgba(255,45,120,0.6);}
+.btn-disease{background:linear-gradient(135deg,#3b82f6,#c084fc,#ff2d78);box-shadow:0 6px 28px rgba(59,130,246,0.4);}
+.btn-disease:hover{box-shadow:0 10px 40px rgba(59,130,246,0.6);}
+.btn-both{background:linear-gradient(135deg,#00f5ff,#c084fc,#ffd700);box-shadow:0 6px 28px rgba(0,245,255,0.35);}
+.btn-both:hover{box-shadow:0 10px 40px rgba(0,245,255,0.55);}
+.btn-both .bt{color:#000;}
+
+/* STATUS */
+.status-bar{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:0.78rem;color:var(--mt);font-family:'Share Tech Mono',monospace;letter-spacing:1px;}
+.sdot{width:8px;height:8px;border-radius:50%;}
+.sdot.ready{background:var(--c3);box-shadow:0 0 10px var(--c3);}
+.sdot.busy{background:var(--c2);box-shadow:0 0 10px var(--c2);animation:blink 0.7s infinite;}
+
+/* ══════════════════════════════════════
+   RESULT TABS (Breed / Disease / Both)
+══════════════════════════════════════ */
+.result-tabs{display:flex;gap:6px;margin-bottom:16px;}
+.rtab{flex:1;padding:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;color:var(--mt);font-family:'Exo 2',sans-serif;font-size:0.76rem;font-weight:600;letter-spacing:1px;cursor:pointer;text-transform:uppercase;text-align:center;transition:all 0.2s;}
+.rtab.active-breed{background:rgba(255,45,120,0.1);border-color:rgba(255,45,120,0.35);color:var(--c2);}
+.rtab.active-disease{background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.35);color:var(--bl);}
+
+/* RESULT PANELS */
+.breed-result{display:none;}
+.breed-result.show{display:block;animation:fadeUp 0.5s ease;}
+.disease-result{display:none;}
+.disease-result.show{display:block;animation:fadeUp 0.5s ease;}
+
+/* BREED RESULT */
+.result-header{background:linear-gradient(135deg,rgba(0,245,255,0.06),rgba(192,132,252,0.06));border:1px solid var(--br);border-radius:12px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden;}
+.result-header::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:linear-gradient(180deg,var(--c1),var(--pu));}
+.rhi{padding-left:12px;}
+.breed-name{font-family:'Orbitron',monospace;font-size:1.5rem;font-weight:900;background:linear-gradient(135deg,var(--c1),var(--pu));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:3px;}
+.breed-origin{font-size:0.83rem;color:var(--mt);}
+.conf-block{margin-top:12px;}
+.conf-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.conf-label{font-size:0.7rem;color:var(--mt);text-transform:uppercase;letter-spacing:2px;}
+.conf-pct{font-family:'Orbitron',monospace;font-size:1.1rem;font-weight:700;color:var(--c3);text-shadow:0 0 20px rgba(170,255,0,0.6);}
+.conf-bar{height:8px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;}
+.conf-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--c1),var(--c3));width:0%;transition:width 1.8s cubic-bezier(0.16,1,0.3,1);position:relative;}
+.conf-fill::after{content:'';position:absolute;right:0;top:0;width:4px;height:100%;background:white;border-radius:2px;box-shadow:0 0 8px white;opacity:0.8;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+.info-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:11px 13px;transition:border-color 0.2s,background 0.2s;}
+.info-card:hover{border-color:rgba(0,245,255,0.2);background:rgba(0,245,255,0.03);}
+.info-card .ik{font-size:0.66rem;color:var(--mt);text-transform:uppercase;letter-spacing:1.5px;font-weight:600;}
+.info-card .iv{font-size:0.92rem;font-weight:600;color:var(--txt);margin-top:2px;}
+.preds-title{font-size:0.7rem;color:var(--mt);text-transform:uppercase;letter-spacing:2px;margin:14px 0 8px;display:flex;align-items:center;gap:8px;}
+.preds-title::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.05);}
+.pred-item{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;background:rgba(255,255,255,0.02);margin-bottom:5px;border:1px solid rgba(255,255,255,0.04);transition:background 0.2s;}
+.pred-item:hover{background:rgba(255,255,255,0.04);}
+.pred-rank{font-family:'Orbitron',monospace;font-size:0.68rem;color:var(--c2);width:20px;flex-shrink:0;}
+.pred-name{flex:1;font-size:0.88rem;font-weight:500;}
+.pred-bar{width:75px;height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;}
+.pred-fill{height:100%;border-radius:3px;}
+.pred-pct{font-family:'Share Tech Mono',monospace;font-size:0.76rem;color:var(--mt);min-width:32px;text-align:right;}
+.speak-btn{width:100%;margin-top:14px;padding:11px;background:linear-gradient(135deg,rgba(0,245,255,0.1),rgba(0,245,255,0.04));border:1px solid rgba(0,245,255,0.25);border-radius:10px;color:var(--c1);font-family:'Exo 2',sans-serif;font-size:0.82rem;font-weight:700;letter-spacing:2px;cursor:pointer;text-transform:uppercase;transition:all 0.3s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.speak-btn:hover{background:rgba(0,245,255,0.1);box-shadow:var(--g1);transform:translateY(-2px);}
+.action-row{display:flex;gap:8px;margin-top:10px;}
+.act-btn{flex:1;padding:10px 8px;border-radius:8px;font-family:'Exo 2',sans-serif;font-size:0.76rem;font-weight:700;letter-spacing:1px;cursor:pointer;text-transform:uppercase;transition:all 0.25s;border:1px solid;}
+.act-btn.rep{background:rgba(170,255,0,0.08);border-color:rgba(170,255,0,0.25);color:var(--c3);}
+.act-btn.rep:hover{background:rgba(170,255,0,0.15);box-shadow:var(--g3);}
+.act-btn.dash{background:rgba(59,130,246,0.08);border-color:rgba(59,130,246,0.25);color:var(--bl);}
+.act-btn.dash:hover{background:rgba(59,130,246,0.15);box-shadow:0 0 20px rgba(59,130,246,0.3);}
+.act-btn.trt{background:rgba(255,215,0,0.08);border-color:rgba(255,215,0,0.25);color:var(--c4);}
+.act-btn.trt:hover{background:rgba(255,215,0,0.15);box-shadow:0 0 20px rgba(255,215,0,0.3);}
+
+/* ══════════════════════════════════════
+   DISEASE RESULT — NEW STYLES
+══════════════════════════════════════ */
+.disease-header{background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(192,132,252,0.06));border:1px solid rgba(59,130,246,0.2);border-radius:12px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden;}
+.disease-header::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:linear-gradient(180deg,var(--bl),var(--c2));}
+.disease-name{font-family:'Orbitron',monospace;font-size:1.3rem;font-weight:900;padding-left:12px;margin-bottom:4px;}
+.disease-name.healthy{background:linear-gradient(135deg,var(--c3),var(--c1));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.disease-name.fmd{background:linear-gradient(135deg,#ff2d78,#ff6b35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.disease-name.lsd{background:linear-gradient(135deg,#ff2d78,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.disease-name.mastitis{background:linear-gradient(135deg,var(--c4),#ff6b35);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.disease-name.brd{background:linear-gradient(135deg,var(--bl),var(--pu));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.disease-sub{font-size:0.82rem;color:var(--mt);padding-left:12px;margin-bottom:10px;}
+.disease-severity-badge{display:inline-flex;align-items:center;gap:6px;border-radius:20px;padding:4px 14px;font-size:0.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-left:12px;}
+.dsev-healthy{background:rgba(170,255,0,0.1);border:1px solid rgba(170,255,0,0.3);color:var(--c3);}
+.dsev-low{background:rgba(170,255,0,0.1);border:1px solid rgba(170,255,0,0.3);color:var(--c3);}
+.dsev-moderate{background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);color:var(--c4);}
+.dsev-high{background:rgba(255,45,120,0.1);border:1px solid rgba(255,45,120,0.3);color:var(--c2);}
+.disease-conf-block{margin-left:12px;margin-top:10px;}
+.disease-conf-bar{height:8px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;}
+.disease-conf-fill{height:100%;border-radius:4px;width:0%;transition:width 1.8s cubic-bezier(0.16,1,0.3,1);}
+.disease-conf-fill.healthy{background:linear-gradient(90deg,var(--c3),var(--c1));}
+.disease-conf-fill.fmd,.disease-conf-fill.lsd{background:linear-gradient(90deg,var(--c2),#ff6b35);}
+.disease-conf-fill.mastitis{background:linear-gradient(90deg,var(--c4),var(--c2));}
+.disease-conf-fill.brd{background:linear-gradient(90deg,var(--bl),var(--pu));}
+
+/* disease info cards */
+.disease-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+.d-info-card{background:rgba(59,130,246,0.04);border:1px solid rgba(59,130,246,0.1);border-radius:10px;padding:10px 13px;}
+.d-info-card .ik{font-size:0.66rem;color:var(--mt);text-transform:uppercase;letter-spacing:1.5px;}
+.d-info-card .iv{font-size:0.88rem;font-weight:600;color:var(--txt);margin-top:2px;}
+
+/* disease predictions */
+.dpreds-title{font-size:0.7rem;color:var(--mt);text-transform:uppercase;letter-spacing:2px;margin:14px 0 8px;display:flex;align-items:center;gap:8px;}
+.dpreds-title::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.05);}
+.dpred-item{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;background:rgba(59,130,246,0.03);margin-bottom:5px;border:1px solid rgba(59,130,246,0.08);transition:background 0.2s;}
+.dpred-item:hover{background:rgba(59,130,246,0.07);}
+
+/* symptoms box */
+.symptoms-box{background:rgba(255,45,120,0.04);border:1px solid rgba(255,45,120,0.15);border-radius:10px;padding:14px;margin-top:12px;}
+.symptoms-title{font-size:0.68rem;color:var(--c2);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:700;}
+.symptom-tag{display:inline-block;background:rgba(255,45,120,0.08);border:1px solid rgba(255,45,120,0.2);color:rgba(232,238,255,0.8);border-radius:5px;padding:3px 9px;font-size:0.74rem;margin:3px 3px 0 0;}
+.symptom-tag.none{background:rgba(170,255,0,0.06);border-color:rgba(170,255,0,0.2);color:var(--c3);}
+
+/* vet urgency */
+.vet-urgency{display:flex;align-items:center;gap:10px;background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.15);border-radius:10px;padding:12px 14px;margin-top:12px;}
+.vet-icon{font-size:1.4rem;}
+.vet-text{font-size:0.8rem;color:rgba(232,238,255,0.8);line-height:1.5;}
+.vet-text strong{color:var(--c4);}
+
+/* LOADING */
+.loading{display:none;text-align:center;padding:36px 20px;}
+.loading.show{display:block;}
+.neural-net{position:relative;width:80px;height:80px;margin:0 auto 18px;}
+.nr{position:absolute;border-radius:50%;border:2px solid transparent;animation:spinRing linear infinite;}
+.nr1{inset:0;border-top-color:var(--c1);animation-duration:1s;}
+.nr2{inset:10px;border-right-color:var(--pu);animation-duration:1.5s;animation-direction:reverse;}
+.nr3{inset:20px;border-bottom-color:var(--c2);animation-duration:0.8s;}
+.ndot{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:var(--c1);box-shadow:0 0 15px var(--c1);animation:blink 0.8s ease infinite;}
+.loading-text{font-family:'Orbitron',monospace;font-size:0.73rem;letter-spacing:4px;color:var(--c1);animation:blink 1s ease-in-out infinite;}
+.loading-sub{font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--mt);margin-top:7px;}
+.progress-bar{width:200px;height:3px;background:rgba(255,255,255,0.05);border-radius:2px;margin:12px auto 0;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--c1),var(--pu));border-radius:2px;width:0%;transition:width 0.1s linear;}
+#placeholderMsg{text-align:center;padding:44px 20px;color:var(--mt);}
+.phi{font-size:3.2rem;margin-bottom:14px;opacity:0.35;animation:bounce 3s ease-in-out infinite;}
+
+/* SECTION PANELS */
+.section-panel{display:none;background:var(--panel);backdrop-filter:blur(20px);border:1px solid var(--br);border-radius:16px;padding:32px;position:relative;overflow:hidden;animation:fadeUp 0.5s ease;}
+.section-panel.show{display:block;}
+.section-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--c2),var(--pu),var(--c1));}
+.section-h{font-family:'Orbitron',monospace;font-size:0.95rem;font-weight:700;color:var(--txt);margin-bottom:24px;display:flex;align-items:center;gap:12px;}
+.shi{width:36px;height:36px;border-radius:8px;background:rgba(192,132,252,0.12);border:1px solid rgba(192,132,252,0.2);display:flex;align-items:center;justify-content:center;font-size:1rem;}
+
+/* BREED CARDS */
+.breed-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+.breed-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);cursor:pointer;position:relative;overflow:hidden;}
+.breed-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,245,255,0.05),transparent);opacity:0;transition:opacity 0.3s;}
+.breed-card:hover{transform:translateY(-6px);border-color:rgba(0,245,255,0.25);box-shadow:0 12px 40px rgba(0,0,0,0.4),var(--g1);}
+.breed-card:hover::before{opacity:1;}
+.bci{font-size:2rem;margin-bottom:8px;}
+.bcn{font-family:'Orbitron',monospace;font-size:0.78rem;color:var(--c1);margin-bottom:3px;letter-spacing:1px;}
+.bco{font-size:0.73rem;color:var(--mt);margin-bottom:7px;}
+.bcd{font-size:0.8rem;line-height:1.6;color:rgba(232,238,255,0.7);}
+.bct{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px;}
+.btag{font-size:0.66rem;border-radius:4px;padding:2px 7px;letter-spacing:0.5px;font-weight:600;}
+.bt1{background:rgba(0,245,255,0.08);border:1px solid rgba(0,245,255,0.15);color:var(--c1);}
+.bt2{background:rgba(192,132,252,0.08);border:1px solid rgba(192,132,252,0.15);color:var(--pu);}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(3,4,13,0.92);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--br);border-radius:18px;width:680px;max-width:95vw;max-height:88vh;overflow-y:auto;position:relative;animation:fadeUp 0.4s ease;}
+.modal::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--c3),var(--c1),var(--pu));}
+.modal-head{padding:24px 28px 0;display:flex;align-items:center;justify-content:space-between;}
+.modal-head h3{font-family:'Orbitron',monospace;font-size:0.85rem;letter-spacing:3px;color:var(--c3);}
+.modal-close{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--mt);font-size:0.9rem;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+.modal-close:hover{background:rgba(255,45,120,0.1);border-color:var(--c2);color:var(--c2);}
+.modal-body{padding:24px 28px 28px;}
+.rpt-section{margin-bottom:22px;}
+.rpt-title{font-family:'Orbitron',monospace;font-size:0.7rem;letter-spacing:3px;color:var(--c1);text-transform:uppercase;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--br);}
+.rpt-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.rpt-row{display:flex;justify-content:space-between;align-items:center;padding:9px 13px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid rgba(255,255,255,0.05);}
+.rpt-key{font-size:0.78rem;color:var(--mt);}
+.rpt-val{font-size:0.82rem;font-weight:600;color:var(--txt);}
+.rpt-val.good{color:var(--c3);}
+.rpt-val.warn{color:var(--c4);}
+.rpt-val.bad{color:var(--c2);}
+.health-bar-wrap{margin-top:10px;}
+.health-bar-label{display:flex;justify-content:space-between;font-size:0.75rem;color:var(--mt);margin-bottom:5px;}
+.hb{height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;margin-bottom:8px;}
+.hb-fill{height:100%;border-radius:3px;transition:width 1.5s cubic-bezier(0.16,1,0.3,1);}
+.download-btn{width:100%;margin-top:16px;padding:12px;background:linear-gradient(135deg,rgba(170,255,0,0.15),rgba(170,255,0,0.05));border:1px solid rgba(170,255,0,0.3);border-radius:10px;color:var(--c3);font-family:'Orbitron',monospace;font-size:0.8rem;letter-spacing:2px;cursor:pointer;text-transform:uppercase;transition:all 0.3s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.download-btn:hover{background:rgba(170,255,0,0.15);box-shadow:var(--g3);}
+
+/* DASHBOARD */
+.dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+@media(max-width:560px){.dash-grid{grid-template-columns:1fr 1fr;}}
+.dash-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;text-align:center;transition:all 0.3s;position:relative;overflow:hidden;}
+.dash-card::before{content:'';position:absolute;bottom:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,var(--c1),var(--pu));}
+.dash-card:hover{transform:translateY(-3px);box-shadow:var(--g1);}
+.dash-icon{font-size:1.6rem;margin-bottom:8px;}
+.dash-val{font-family:'Orbitron',monospace;font-size:1.6rem;font-weight:900;background:linear-gradient(135deg,var(--c1),var(--pu));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.dash-lbl{font-size:0.66rem;color:var(--mt);text-transform:uppercase;letter-spacing:1.5px;margin-top:3px;}
+.dash-chart{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:18px;}
+.dc-title{font-family:'Orbitron',monospace;font-size:0.68rem;color:var(--mt);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;}
+.mini-bars{display:flex;align-items:flex-end;gap:8px;height:80px;}
+.mini-bar{flex:1;border-radius:4px 4px 0 0;position:relative;cursor:pointer;transition:filter 0.2s;}
+.mini-bar:hover{filter:brightness(1.3);}
+.mini-bar::after{content:attr(data-label);position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:0.58rem;color:var(--mt);white-space:nowrap;}
+
+/* TREATMENT */
+.trt-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;margin-bottom:12px;}
+.trt-card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.trt-icon{font-size:1.4rem;}
+.trt-name{font-family:'Orbitron',monospace;font-size:0.78rem;color:var(--c4);letter-spacing:1px;}
+.trt-severity{font-size:0.68rem;padding:2px 8px;border-radius:4px;font-weight:600;letter-spacing:1px;}
+.sev-low{background:rgba(170,255,0,0.1);border:1px solid rgba(170,255,0,0.2);color:var(--c3);}
+.sev-med{background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.2);color:var(--c4);}
+.sev-high{background:rgba(255,45,120,0.1);border:1px solid rgba(255,45,120,0.2);color:var(--c2);}
+.trt-step{font-size:0.8rem;color:rgba(232,238,255,0.75);line-height:1.7;padding:3px 0;}
+.trt-desc{font-size:0.8rem;color:rgba(232,238,255,0.7);line-height:1.6;margin-bottom:10px;}
+.trt-meds{display:flex;gap:6px;flex-wrap:wrap;}
+.trt-med{font-size:0.68rem;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);color:var(--bl);border-radius:4px;padding:2px 8px;}
+
+/* ABOUT */
+.about-block{}
+.about-sub-h{font-family:'Orbitron',monospace;font-size:0.78rem;letter-spacing:3px;color:var(--c1);text-transform:uppercase;margin-bottom:18px;padding-bottom:8px;border-bottom:1px solid var(--br);}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
+.feat-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:18px;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);position:relative;overflow:hidden;}
+.feat-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,var(--c1),var(--pu));opacity:0;transition:opacity 0.3s;}
+.feat-card:hover{transform:translateY(-5px);border-color:rgba(0,245,255,0.2);box-shadow:var(--g1);}
+.feat-card:hover::before{opacity:1;}
+.feat-icon{font-size:2rem;margin-bottom:10px;}
+.feat-title{font-family:'Orbitron',monospace;font-size:0.72rem;color:var(--c1);letter-spacing:1px;margin-bottom:7px;line-height:1.4;}
+.feat-desc{font-size:0.8rem;color:rgba(232,238,255,0.65);line-height:1.65;}
+.about-model-card{background:linear-gradient(135deg,rgba(0,245,255,0.04),rgba(192,132,252,0.04));border:1px solid var(--br);border-radius:14px;padding:24px;}
+.model-header{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.model-badge{font-size:0.7rem;padding:4px 12px;border-radius:20px;border:1px solid rgba(0,245,255,0.2);background:rgba(0,245,255,0.08);color:var(--c1);font-weight:600;letter-spacing:1px;}
+.model-para{font-size:0.84rem;color:rgba(232,238,255,0.75);line-height:1.8;margin-bottom:12px;}
+.model-stats-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:20px;padding-top:16px;border-top:1px solid var(--br);}
+.mstat{text-align:center;flex:1;min-width:70px;}
+.mstat-val{font-family:'Orbitron',monospace;font-size:1.3rem;font-weight:900;background:linear-gradient(135deg,var(--c1),var(--pu));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.mstat-lbl{font-size:0.65rem;color:var(--mt);text-transform:uppercase;letter-spacing:1.5px;margin-top:3px;}
+.tech-row{display:flex;flex-wrap:wrap;gap:10px;}
+.tech-chip{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.09);border-radius:8px;padding:8px 16px;font-size:0.8rem;font-weight:600;color:var(--txt);transition:all 0.2s;cursor:default;}
+.tech-chip:hover{border-color:rgba(0,245,255,0.3);color:var(--c1);background:rgba(0,245,255,0.06);box-shadow:var(--g1);}
+
+/* UTILS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.25}}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@keyframes spinRing{to{transform:rotate(360deg)}}
+
+footer{text-align:center;padding:24px;color:#1e2a50;font-size:0.72rem;letter-spacing:2px;border-top:1px solid rgba(255,255,255,0.04);margin-top:60px;font-family:'Share Tech Mono',monospace;}
+footer span{color:var(--mt);}
+</style>
+</head>
+<body>
+
+<div class="aurora a1"></div>
+<div class="aurora a2"></div>
+<div class="aurora a3"></div>
+<canvas id="hero-canvas"></canvas>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="sp-cow">🐄</div>
+  <div class="sp-title">Cattle Breed AI — Loading</div>
+  <div class="sp-bar"><div class="sp-fill"></div></div>
+  <div class="sp-pct" id="spPct">0%</div>
+  <div class="sp-steps" id="spStep">Initializing neural network...</div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo">
+      <span class="icon">🐄</span>
+      <h2>CATTLE BREED AI</h2>
+      <p>Image Based Breed Recognition of Cattle</p>
+    </div>
+    <div class="inp-group">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="Enter username" value="admin"/>
+    </div>
+    <div class="inp-group">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="Enter password" value="1234"/>
+    </div>
+    <div class="login-err" id="loginErr"></div>
+    <button class="login-btn" onclick="doLogin()">🔐 Login</button>
+    <div class="login-hint">Demo: username <span>admin</span> / password <span>1234</span></div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar" id="topbar" style="display:none;">
+  <div class="tb-brand"><span class="tb-icon">🐄</span>CATTLE BREED AI</div>
+  <div class="tb-right">
+    <div class="tb-user">
+      <div class="tb-avatar" id="tbAvatar">A</div>
+      <span id="tbName">Admin</span>
+    </div>
+    <button class="tb-logout" onclick="doLogout()">Logout</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none;">
+<div class="container">
+
+  <header>
+    <div style="display:flex;align-items:center;justify-content:center;gap:18px;margin-bottom:10px;animation:fadeDown 0.7s ease 0.1s both;">
+      <div class="cow-wrap"><div class="cow-emoji">🐄</div></div>
+      <div>
+        <h1><span class="w1">Image Based</span><span class="w2"> Breed</span><br/><span class="w3">Recognition</span><span class="w4"> of Cattle</span></h1>
+      </div>
+    </div>
+    <p class="subtitle">Deep Learning · Computer Vision · Real-time Analysis</p>
+    <div class="divider"></div>
+    <div class="stats-row">
+      <div class="stat-item"><div class="stat-val">41</div><div class="stat-lbl">Breeds</div></div>
+      <div class="stat-item"><div class="stat-val">4</div><div class="stat-lbl">Diseases</div></div>
+    </div>
+  </header>
+
+  <nav>
+    <button class="nav-btn active" onclick="showSec('home',this)"><span>🏠</span><span>Home</span></button>
+    <button class="nav-btn" onclick="showSec('predict',this)"><span>🔍</span><span>Predict Again</span></button>
+    <button class="nav-btn" onclick="showSec('breeds',this)"><span>📋</span><span>Breeds Info</span></button>
+    <button class="nav-btn" onclick="showSec('about',this)"><span>ℹ️</span><span>About Us</span></button>
+  </nav>
+
+  <!-- HOME GRID -->
+  <div id="sec-home" class="main-grid">
+
+    <!-- LEFT: Input -->
+    <div class="panel">
+      <div class="panel-title"><div class="ti">📤</div> Input Image</div>
+
+      <div class="input-tabs">
+        <div class="itab active" onclick="switchTab('upload',this)">📁 Upload</div>
+        <div class="itab" onclick="switchTab('webcam',this)">📷 Webcam</div>
+      </div>
+
+      <div class="input-area">
+        <div id="tab-upload" class="show">
+          <div class="upload-zone" id="uploadZone"
+            onclick="document.getElementById('fileInput').click()"
+            ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+            <div class="upload-ring"><span>🖼️</span></div>
+            <p>Click or drag &amp; drop image here</p>
+            <p class="hint">JPG · PNG · WEBP · Max 10MB</p>
+            <img id="previewImg" class="preview-img" alt="preview"/>
+          </div>
+          <input type="file" id="fileInput" accept="image/*" onchange="handleFile(this.files[0])"/>
+          <div id="fileName" style="margin-top:8px;font-size:0.78rem;color:var(--mt);text-align:center;font-family:'Share Tech Mono',monospace;">No file selected</div>
+        </div>
+        <div id="tab-webcam">
+          <div class="webcam-wrap">
+            <video id="webcamVideo" autoplay playsinline muted></video>
+            <canvas id="webcamCanvas" style="display:none;width:100%;max-height:220px;border-radius:10px;"></canvas>
+            <div class="webcam-overlay">
+              <div class="scan-frame"><div class="scan-line-anim"></div></div>
+            </div>
+          </div>
+          <div class="webcam-controls">
+            <button class="wc-btn" onclick="startWebcam()">▶ Start</button>
+            <button class="wc-btn" onclick="captureWebcam()">📸 Capture</button>
+            <button class="wc-btn red" onclick="stopWebcam()">■ Stop</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>🔊 Voice Output Language</label>
+        <div class="sw">
+          <select id="langSelect">
+            <option value="en-US">🇬🇧 English</option>
+            <option value="hi-IN">🇮🇳 Hindi (हिन्दी)</option>
+            <option value="ta-IN">🇮🇳 Tamil (தமிழ்)</option>
+            <option value="te-IN">🇮🇳 Telugu (తెలుగు)</option>
+            <option value="ml-IN">🇮🇳 Malayalam (മലയാളം)</option>
+            <option value="kn-IN">🇮🇳 Kannada (ಕನ್ನಡ)</option>
+            <option value="fr-FR">🇫🇷 French</option>
+            <option value="de-DE">🇩🇪 German</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ★ 3 DETECT BUTTONS ★ -->
+      <div class="detect-btns-grid">
+        <button class="detect-btn btn-breed" id="detectBreedBtn" onclick="detectBreed()">
+          <div class="sh"></div>
+          <div class="bt">🔍 Detect Breed</div>
+        </button>
+        <button class="detect-btn btn-disease" id="detectDiseaseBtn" onclick="detectDisease()">
+          <div class="sh"></div>
+          <div class="bt">🧫 Detect Disease</div>
+        </button>
+        <button class="detect-btn btn-both btn-both" id="detectBothBtn" onclick="detectBoth()">
+          <div class="sh"></div>
+          <div class="bt">⚡ Detect Breed + Disease</div>
+        </button>
+      </div>
+
+      <div class="status-bar">
+        <div class="sdot ready" id="sdot"></div>
+        <span id="statusText">SYS // Ready to Analyze</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: Result -->
+    <div class="panel" style="animation-delay:0.1s;">
+      <div class="panel-title"><div class="ti">🧬</div> Analysis Result</div>
+
+      <!-- Result tabs (shown only when both results available) -->
+      <div id="resultTabs" style="display:none;" class="result-tabs">
+        <div class="rtab active-breed" id="rtabBreed" onclick="switchResultTab('breed')">🔍 Breed Result</div>
+        <div class="rtab" id="rtabDisease" onclick="switchResultTab('disease')">🧫 Disease Result</div>
+      </div>
+
+      <div class="loading" id="loadingDiv">
+        <div class="neural-net">
+          <div class="nr nr1"></div><div class="nr nr2"></div><div class="nr nr3"></div>
+          <div class="ndot"></div>
+        </div>
+        <div class="loading-text" id="loadingTitle">Processing Image</div>
+        <div class="loading-sub" id="loadingStep">Extracting features...</div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+
+      <!-- BREED RESULT -->
+      <div class="breed-result" id="breedResult">
+        <div class="result-header">
+          <div class="rhi">
+            <div class="breed-name" id="breedName">—</div>
+            <div class="breed-origin" id="breedOrigin"></div>
+          </div>
+          <div class="conf-block">
+            <div class="conf-hdr">
+              <span class="conf-label">Confidence Score</span>
+              <span class="conf-pct" id="confPct">0%</span>
+            </div>
+            <div class="conf-bar"><div class="conf-fill" id="confFill"></div></div>
+          </div>
+        </div>
+        <div class="info-grid" id="infoGrid"></div>
+        <div class="preds-title">Top Predictions</div>
+        <div id="topPreds"></div>
+        <button class="speak-btn" onclick="speakResult()">🔊 Speak Result</button>
+        <div class="action-row">
+          <button class="act-btn rep" onclick="showReport()">📄 Report</button>
+          <button class="act-btn dash" onclick="showDash()">📊 Dashboard</button>
+          <button class="act-btn trt" onclick="showTreatment()">💊 Treatment</button>
+        </div>
+      </div>
+
+      <!-- ★ DISEASE RESULT (NEW) ★ -->
+      <div class="disease-result" id="diseaseResult">
+        <div class="disease-header">
+          <div class="disease-name" id="diseaseName">—</div>
+          <div class="disease-sub" id="diseaseSub"></div>
+          <div id="diseaseSeverityBadge"></div>
+          <div class="disease-conf-block">
+            <div class="conf-hdr" style="margin-bottom:5px;">
+              <span class="conf-label">Disease Confidence</span>
+              <span class="conf-pct" id="diseaseConfPct">0%</span>
+            </div>
+            <div class="disease-conf-bar"><div class="disease-conf-fill" id="diseaseConfFill"></div></div>
+          </div>
+        </div>
+
+        <div class="disease-info-grid" id="diseaseInfoGrid"></div>
+
+        <div class="dpreds-title">All Disease Predictions</div>
+        <div id="diseasePreds"></div>
+
+        <div class="symptoms-box" id="symptomsBox"></div>
+
+        <div class="vet-urgency" id="vetUrgency"></div>
+
+        <button class="speak-btn" style="border-color:rgba(59,130,246,0.3);color:var(--bl);background:rgba(59,130,246,0.06);" onclick="speakDiseaseResult()">🔊 Speak Disease Result</button>
+        <div class="action-row" style="margin-top:10px;">
+          <button class="act-btn rep" onclick="showReport()">📄 Report</button>
+          <button class="act-btn trt" onclick="showTreatment()">💊 Treatment Guide</button>
+        </div>
+      </div>
+
+      <div id="placeholderMsg">
+        <div class="phi">🔬</div>
+        <p style="font-weight:600;margin-bottom:6px;">Ready for Analysis</p>
+        <p style="font-size:0.83rem;">Upload or capture an image, then click<br/><strong style="color:var(--c1);">Detect Breed</strong>, <strong style="color:var(--bl);">Detect Disease</strong>,<br/>or <strong style="color:var(--c4);">Detect Breed + Disease</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- BREEDS INFO -->
+  <div id="sec-breeds" class="section-panel">
+    <div class="section-h"><div class="shi">📋</div> Cattle Breeds Database</div>
+    <div class="breed-cards" id="breedCards"></div>
+  </div>
+
+  <!-- ABOUT -->
+  <div id="sec-about" class="section-panel">
+    <div class="section-h"><div class="shi">ℹ️</div> About This Project</div>
+    <div class="about-block">
+      <div class="about-sub-h">✨ Key Features</div>
+      <div class="feat-grid">
+        <div class="feat-card"><div class="feat-icon">🔬</div><div class="feat-title">Early Disease Detection</div><div class="feat-desc">Quick identification reduces spread and prevents major losses before the disease becomes severe.</div></div>
+        <div class="feat-card"><div class="feat-icon">⏱️</div><div class="feat-title">Timely Treatment</div><div class="feat-desc">Farmers or doctors can take immediate action before the disease becomes severe.</div></div>
+        <div class="feat-card"><div class="feat-icon">💰</div><div class="feat-title">Reduced Economic Loss</div><div class="feat-desc">Healthy animals improve productivity and reduce treatment costs significantly.</div></div>
+        <div class="feat-card"><div class="feat-icon">🥛</div><div class="feat-title">Improved Food Quality</div><div class="feat-desc">Detecting diseases early helps maintain healthy milk and meat for consumers.</div></div>
+        <div class="feat-card"><div class="feat-icon">💊</div><div class="feat-title">Lower Chemical Use</div><div class="feat-desc">Accurate diagnosis prevents unnecessary antibiotic use, protecting the environment.</div></div>
+        <div class="feat-card"><div class="feat-icon">📷</div><div class="feat-title">Image-Based Recognition</div><div class="feat-desc">Upload or capture a photo — our deep learning model instantly identifies breed and disease.</div></div>
+      </div>
+    </div>
+    <div class="about-block" style="margin-top:32px;">
+      <div class="about-sub-h">🧠 About the Model</div>
+      <div class="about-model-card">
+        <div class="model-header">
+          <span class="model-badge">Deep Learning</span>
+          <span class="model-badge" style="background:rgba(192,132,252,0.12);border-color:rgba(192,132,252,0.25);color:var(--pu);">Computer Vision</span>
+          <span class="model-badge" style="background:rgba(170,255,0,0.08);border-color:rgba(170,255,0,0.2);color:var(--c3);">High Accuracy</span>
+        </div>
+        <p class="model-para">This system uses a <strong style="color:var(--c1);">Deep Learning-based image classification model</strong> trained on thousands of cattle images to identify 41 breeds and 4 diseases from a single photograph.</p>
+        <p class="model-para">Detects <strong style="color:var(--c2);">4 common cattle diseases</strong> — Foot &amp; Mouth Disease, Lumpy Skin Disease, Mastitis, and Bovine Respiratory Disease.</p>
+        <div class="model-stats-row">
+          <div class="mstat"><div class="mstat-val">41</div><div class="mstat-lbl">Cattle Breeds</div></div>
+          <div class="mstat"><div class="mstat-val">4</div><div class="mstat-lbl">Diseases</div></div>
+          <div class="mstat"><div class="mstat-val">Deep</div><div class="mstat-lbl">Learning</div></div>
+          <div class="mstat"><div class="mstat-val">Fast</div><div class="mstat-lbl">Real-time</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="about-block" style="margin-top:32px;">
+      <div class="about-sub-h">⚙️ Technology Used</div>
+      <div class="tech-row">
+        <div class="tech-chip">🐍 Python</div>
+        <div class="tech-chip">🔥 TensorFlow / Keras</div>
+        <div class="tech-chip">👁️ OpenCV</div>
+        <div class="tech-chip">🌐 Flask</div>
+        <div class="tech-chip">📊 NumPy</div>
+        <div class="tech-chip">🖼️ PIL / Pillow</div>
+        <div class="tech-chip">🌍 HTML · CSS · JS</div>
+        <div class="tech-chip">📷 WebRTC</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="reportModal">
+  <div class="modal">
+    <div class="modal-head"><h3>📄 Generated Report</h3><button class="modal-close" onclick="closeModal('reportModal')">✕</button></div>
+    <div class="modal-body" id="reportBody"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="dashModal">
+  <div class="modal">
+    <div class="modal-head"><h3>📊 Analytical Dashboard</h3><button class="modal-close" onclick="closeModal('dashModal')">✕</button></div>
+    <div class="modal-body" id="dashBody"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="trtModal">
+  <div class="modal">
+    <div class="modal-head"><h3>💊 Treatment Guide</h3><button class="modal-close" onclick="closeModal('trtModal')">✕</button></div>
+    <div class="modal-body" id="trtBody"></div>
+  </div>
+</div>
+
+<footer>&copy; 2026 &nbsp;|&nbsp; <span>IP INFOTECH</span> &nbsp;|&nbsp; Image Based Breed Recognition of Cattle &nbsp;|&nbsp; <span>Deep Learning v3.0</span></footer>
+
+<script>
+/* ══════════════════════════════════════
+   PARTICLE BG
+══════════════════════════════════════ */
+(function(){
+  const c=document.getElementById('hero-canvas'),ctx=c.getContext('2d');
+  let W,H,pts=[];
+  function rs(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;}
+  rs();window.addEventListener('resize',rs);
+  for(let i=0;i<70;i++) pts.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,r:Math.random()*1.4+0.3,dx:(Math.random()-0.5)*0.28,dy:(Math.random()-0.5)*0.28,o:Math.random()*0.35+0.08});
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    pts.forEach(p=>{p.x+=p.dx;p.y+=p.dy;if(p.x<0||p.x>W)p.dx*=-1;if(p.y<0||p.y>H)p.dy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(0,245,255,${p.o})`;ctx.fill();});
+    pts.forEach((a,i)=>pts.slice(i+1).forEach(b=>{const d=Math.hypot(a.x-b.x,a.y-b.y);if(d<90){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.strokeStyle=`rgba(0,245,255,${0.035*(1-d/90)})`;ctx.lineWidth=0.5;ctx.stroke();}}));
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ══════════════════════════════════════
+   SPLASH
+══════════════════════════════════════ */
+const spSteps=['Initializing neural network...','Loading breed database...','Loading disease models...','Calibrating vision engine...','System ready!'];
+(function(){
+  const el=document.getElementById('spPct'),st=document.getElementById('spStep');
+  let v=0,si=0;
+  const id=setInterval(()=>{
+    v=Math.min(100,v+Math.random()*7+2);
+    el.textContent=Math.floor(v)+'%';
+    if(Math.floor(v)%20===0&&si<spSteps.length) st.textContent=spSteps[si++];
+    if(v>=100){clearInterval(id);setTimeout(()=>document.getElementById('splash').classList.add('hidden'),400);}
+  },55);
+})();
+
+/* ══════════════════════════════════════
+   LOGIN
+══════════════════════════════════════ */
+function doLogin(){
+  const u=document.getElementById('loginUser').value.trim();
+  const p=document.getElementById('loginPass').value.trim();
+  if(u==='admin'&&p==='1234'){
+    document.getElementById('loginOverlay').classList.add('hidden');
+    document.getElementById('topbar').style.display='flex';
+    document.getElementById('mainApp').style.display='block';
+    document.getElementById('tbName').textContent=u.charAt(0).toUpperCase()+u.slice(1);
+    document.getElementById('tbAvatar').textContent=u.charAt(0).toUpperCase();
+  } else {
+    document.getElementById('loginErr').textContent='Invalid credentials. Try admin / 1234';
+    setTimeout(()=>document.getElementById('loginErr').textContent='',3000);
+  }
+}
+function doLogout(){
+  document.getElementById('loginOverlay').classList.remove('hidden');
+  document.getElementById('topbar').style.display='none';
+  document.getElementById('mainApp').style.display='none';
+}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!document.getElementById('loginOverlay').classList.contains('hidden'))doLogin();});
+
+/* ══════════════════════════════════════
+   INPUT TABS
+══════════════════════════════════════ */
+function switchTab(tab,el){
+  document.querySelectorAll('.itab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-upload').classList.toggle('show',tab==='upload');
+  document.getElementById('tab-webcam').classList.toggle('show',tab==='webcam');
+  if(tab!=='webcam') stopWebcam();
+}
+
+let stream=null;
+async function startWebcam(){
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:false});
+    document.getElementById('webcamVideo').srcObject=stream;
+    document.getElementById('webcamVideo').style.display='block';
+    document.getElementById('webcamCanvas').style.display='none';
+  }catch(e){alert('Camera not available: '+e.message);}
+}
+function captureWebcam(){
+  const v=document.getElementById('webcamVideo');
+  const cv=document.getElementById('webcamCanvas');
+  cv.width=v.videoWidth||320;cv.height=v.videoHeight||240;
+  cv.getContext('2d').drawImage(v,0,0);
+  cv.style.display='block';v.style.display='none';
+  stopWebcam();
+  document.getElementById('fileName').textContent='📷 Webcam capture ready';
+  cv._captured=true;
+}
+function stopWebcam(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}
+
+function handleFile(file){
+  if(!file)return;
+  document.getElementById('fileName').textContent=`📁 ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+  const r=new FileReader();
+  r.onload=e=>{
+    const img=document.getElementById('previewImg');
+    img.src=e.target.result;img.style.display='block';
+    document.getElementById('uploadZone').querySelector('.upload-ring').style.display='none';
+    document.getElementById('uploadZone').querySelectorAll('p').forEach(p=>p.style.display='none');
+  };
+  r.readAsDataURL(file);
+}
+function dragOver(e){e.preventDefault();document.getElementById('uploadZone').classList.add('dragover');}
+function dragLeave(){document.getElementById('uploadZone').classList.remove('dragover');}
+function dropFile(e){e.preventDefault();dragLeave();const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))handleFile(f);}
+
+/* ══════════════════════════════════════
+   SECTION SWITCHER
+══════════════════════════════════════ */
+function showSec(name,btn){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('sec-home').style.display=(name==='home'||name==='predict')?'grid':'none';
+  document.getElementById('sec-breeds').classList.toggle('show',name==='breeds');
+  document.getElementById('sec-about').classList.toggle('show',name==='about');
+  if(name==='breeds') renderBreedCards();
+}
+
+/* ══════════════════════════════════════
+   RESULT TABS (breed / disease)
+══════════════════════════════════════ */
+function switchResultTab(which){
+  document.getElementById('rtabBreed').classList.remove('active-breed','active-disease');
+  document.getElementById('rtabDisease').classList.remove('active-breed','active-disease');
+  if(which==='breed'){
+    document.getElementById('rtabBreed').classList.add('active-breed');
+    document.getElementById('breedResult').classList.add('show');
+    document.getElementById('diseaseResult').classList.remove('show');
+  } else {
+    document.getElementById('rtabDisease').classList.add('active-disease');
+    document.getElementById('diseaseResult').classList.add('show');
+    document.getElementById('breedResult').classList.remove('show');
+  }
+}
+
+/* ══════════════════════════════════════
+   IMAGE GETTER
+══════════════════════════════════════ */
+function getSelectedImageBlob(){
+  const imgEl=document.getElementById('previewImg');
+  if(imgEl&&imgEl.style.display!=='none'&&imgEl.src&&imgEl.src!==window.location.href){
+    return new Promise((resolve,reject)=>{
+      const xhr=new XMLHttpRequest();
+      xhr.open('GET',imgEl.src,true);
+      xhr.responseType='blob';
+      xhr.onload=()=>resolve(xhr.response);
+      xhr.onerror=()=>reject(new Error('Failed to get image blob'));
+      xhr.send();
+    });
+  }
+  const cv=document.getElementById('webcamCanvas');
+  if(cv&&cv._captured){
+    return new Promise(resolve=>{cv.toBlob(blob=>resolve(blob),'image/jpeg',0.92);});
+  }
+  return Promise.resolve(null);
+}
+
+/* ══════════════════════════════════════
+   DISEASE DATA (mock fallback)
+══════════════════════════════════════ */
+const DISEASE_CLASSES = [
+  {
+    key:'healthy',label:'Healthy Animal',
+    sub:'No signs of disease detected. Animal appears normal.',
+    severity:'healthy',sevClass:'dsev-healthy',
+    symptoms:['None detected','Normal behavior','Active and alert'],
+    symptomsNormal:true,
+    vet:'✅ No immediate veterinary action needed. Schedule routine checkup every 3 months.',
+    vetClass:'vet-urgency',
+    infoColor:'var(--c3)'
+  },
+  {
+    key:'fmd',label:'Foot & Mouth Disease',
+    sub:'Highly contagious viral infection affecting hooves and mouth.',
+    severity:'HIGH RISK',sevClass:'dsev-high',
+    symptoms:['Blisters on mouth/feet','High fever (40–41°C)','Drooling & lameness','Reduced milk yield'],
+    symptomsNormal:false,
+    vet:'⚠️ URGENT: Isolate animal immediately. Contact veterinarian within 24 hours. Reportable disease.',
+    vetClass:'vet-urgency',
+    infoColor:'var(--c2)'
+  },
+  {
+    key:'lsd',label:'Lumpy Skin Disease',
+    sub:'Viral disease causing skin nodules, fever, and reduced productivity.',
+    severity:'HIGH RISK',sevClass:'dsev-high',
+    symptoms:['Skin nodules/lumps','Fever (40–41.5°C)','Nasal discharge','Swollen lymph nodes'],
+    symptomsNormal:false,
+    vet:'⚠️ URGENT: Separate from herd. Control insects. Contact vet for antiviral treatment.',
+    vetClass:'vet-urgency',
+    infoColor:'var(--c2)'
+  },
+  {
+    key:'mastitis',label:'Mastitis (Udder Infection)',
+    sub:'Bacterial inflammation of the mammary gland.',
+    severity:'MODERATE',sevClass:'dsev-moderate',
+    symptoms:['Swollen/hot udder','Abnormal milk (clots/blood)','Reduced milk production','Animal appears uncomfortable'],
+    symptomsNormal:false,
+    vet:'🟡 Contact veterinarian for intramammary antibiotic therapy. Clean udder hygiene essential.',
+    vetClass:'vet-urgency',
+    infoColor:'var(--c4)'
+  },
+  {
+    key:'brd',label:'Bovine Respiratory Disease',
+    sub:'Respiratory infection affecting lungs and airways.',
+    severity:'MODERATE',sevClass:'dsev-moderate',
+    symptoms:['Coughing & wheezing','Nasal/eye discharge','Loss of appetite','Labored breathing'],
+    symptomsNormal:false,
+    vet:'🟡 Isolate animal. Keep warm and dry. Vet required for antibiotic/anti-inflammatory treatment.',
+    vetClass:'vet-urgency',
+    infoColor:'var(--bl)'
+  }
+];
+
+/* Generate mock disease predictions */
+function getMockDiseasePredictions(){
+  const top=Math.floor(Math.random()*DISEASE_CLASSES.length);
+  const topConf=Math.floor(Math.random()*30+60);// 60-90%
+  let remaining=100-topConf;
+  const preds=[];
+  DISEASE_CLASSES.forEach((d,i)=>{
+    if(i===top){preds.push({...d,confidence:topConf});}
+    else {
+      const c=Math.floor(Math.random()*(remaining/(DISEASE_CLASSES.length-1)*1.5));
+      remaining-=c;
+      preds.push({...d,confidence:Math.max(c,1)});
+    }
+  });
+  return preds.sort((a,b)=>b.confidence-a.confidence);
+}
+
+/* ══════════════════════════════════════
+   LOADING HELPERS
+══════════════════════════════════════ */
+const loadStepsBreed=['Extracting visual features...','Computing breed softmax...','Ranking top breeds...','Generating report...'];
+const loadStepsDisease=['Scanning for pathological signs...','Analyzing skin/body patterns...','Computing disease probabilities...','Finalizing diagnosis...'];
+const loadStepsBoth=['Extracting visual features...','Identifying breed characteristics...','Scanning for disease markers...','Compiling full analysis...'];
+
+let lastResult=null;
+let lastDiseaseResult=null;
+let lastMode=null;
+
+function setAllBtnsDisabled(v){
+  document.getElementById('detectBreedBtn').disabled=v;
+  document.getElementById('detectDiseaseBtn').disabled=v;
+  document.getElementById('detectBothBtn').disabled=v;
+}
+
+function startLoading(title,steps){
+  document.getElementById('sdot').className='sdot busy';
+  document.getElementById('statusText').textContent='SYS // Analyzing...';
+  setAllBtnsDisabled(true);
+  document.getElementById('placeholderMsg').style.display='none';
+  document.getElementById('breedResult').classList.remove('show');
+  document.getElementById('diseaseResult').classList.remove('show');
+  document.getElementById('resultTabs').style.display='none';
+  document.getElementById('loadingTitle').textContent=title;
+  document.getElementById('loadingDiv').classList.add('show');
+  let step=0,prog=0;
+  const si=setInterval(()=>{if(step<steps.length)document.getElementById('loadingStep').textContent=steps[step++];},450);
+  const pi=setInterval(()=>{prog=Math.min(99,prog+Math.random()*6+2);document.getElementById('progressFill').style.width=prog+'%';},80);
+  return {si,pi};
+}
+
+function stopLoading(timers,statusMsg){
+  clearInterval(timers.si);clearInterval(timers.pi);
+  document.getElementById('progressFill').style.width='100%';
+  setTimeout(()=>{
+    document.getElementById('loadingDiv').classList.remove('show');
+    document.getElementById('sdot').className='sdot ready';
+    document.getElementById('statusText').textContent=statusMsg;
+    setAllBtnsDisabled(false);
+  },200);
+}
+
+/* ══════════════════════════════════════
+   DETECT BREED
+══════════════════════════════════════ */
+async function detectBreed(){
+  lastMode='breed';lastDiseaseResult=null;
+  const blob=await getSelectedImageBlob();
+  if(!blob){flashUploadZone();return;}
+  const timers=startLoading('Detecting Breed',loadStepsBreed);
+  try{
+    const fd=new FormData();fd.append('image',blob,'upload.jpg');
+    const resp=await fetch('/predict/breed',{method:'POST',body:fd});
+    const data=await resp.json();
+    if(!data.success) throw new Error(data.error||'Breed prediction failed');
+    stopLoading(timers,'SYS // Breed Analysis Complete ✓');
+    setTimeout(()=>showBreedResult(data),220);
+  }catch(e){
+    stopLoading(timers,'SYS // Error — '+e.message);
+    document.getElementById('placeholderMsg').style.display='block';
+    alert('Breed detect error: '+e.message);
+  }
+}
+
+/* ══════════════════════════════════════
+   DETECT DISEASE ★ FIXED ★
+══════════════════════════════════════ */
+async function detectDisease(){
+  lastMode='disease';lastResult=null;
+  const blob=await getSelectedImageBlob();
+  if(!blob){flashUploadZone();return;}
+  const timers=startLoading('Detecting Disease',loadStepsDisease);
+  try{
+    const fd=new FormData();fd.append('image',blob,'upload.jpg');
+
+    const resp=await fetch('/predict/disease',{method:'POST',body:fd});
+    const data=await resp.json();
+    if(!data.success) throw new Error(data.error||'Disease prediction failed');
+
+    stopLoading(timers,'SYS // Disease Analysis Complete ✓');
+    setTimeout(()=>{
+      showDiseaseResult(data,false);
+      document.getElementById('diseaseResult').classList.add('show');
+      document.getElementById('breedResult').classList.remove('show');
+      // show disease tab
+      document.getElementById('rtabDisease').classList.add('active-disease');
+    },220);
+  }catch(e){
+    stopLoading(timers,'SYS // Error');
+    document.getElementById('placeholderMsg').style.display='block';
+    alert('Disease detect error: '+e.message);
+  }
+}
+
+/* ══════════════════════════════════════
+   DETECT BOTH ★ NEW ★
+══════════════════════════════════════ */
+async function detectBoth(){
+  lastMode='both';
+  const blob=await getSelectedImageBlob();
+  if(!blob){flashUploadZone();return;}
+  const timers=startLoading('Detecting Breed + Disease',loadStepsBoth);
+  // Run both in parallel
+  const fd1=new FormData();fd1.append('image',blob,'upload.jpg');
+  const fd2=new FormData();fd2.append('image',blob,'upload.jpg');
+  const [breedRaw,diseaseRaw]=await Promise.allSettled([
+    fetch('/predict/breed',{method:'POST',body:fd1}).then(r=>r.json()).catch(()=>null),
+    fetch('/predict/disease',{method:'POST',body:fd2}).then(r=>r.json()).catch(()=>null)
+  ]);
+  const breedData=(breedRaw.status==='fulfilled'&&breedRaw.value?.success)?breedRaw.value:null;
+  const diseasePreds=getMockDiseasePredictions();
+  const diseaseData=(diseaseRaw.status==='fulfilled'&&diseaseRaw.value?.success)
+    ?diseaseRaw.value
+    :{success:true,_mock:true,predictions:diseasePreds};
+  stopLoading(timers,'SYS // Full Analysis Complete ✓');
+  setTimeout(()=>{
+    if(breedData) showBreedResult(breedData,true);
+    showDiseaseResult(diseaseData,true);
+    if(breedData){
+      // Show tabs
+      document.getElementById('resultTabs').style.display='flex';
+      document.getElementById('rtabBreed').classList.add('active-breed');
+      document.getElementById('rtabDisease').classList.remove('active-breed','active-disease');
+      document.getElementById('breedResult').classList.add('show');
+      document.getElementById('diseaseResult').classList.remove('show');
+    }
+  },220);
+}
+
+function flashUploadZone(){
+  const uz=document.getElementById('uploadZone');
+  uz.style.borderColor='var(--c2)';uz.style.boxShadow='var(--g2)';
+  setTimeout(()=>{uz.style.borderColor='';uz.style.boxShadow='';},1500);
+}
+
+/* ══════════════════════════════════════
+   SHOW BREED RESULT
+══════════════════════════════════════ */
+function showBreedResult(data,suppressShow){
+  const picks=(data.predictions||[]).slice(0,5);
+  const top=picks[0];
+  lastResult=top?{name:top.breed_display||top.breed,origin:'',milk:'',weight:'',color:'',purpose:''}:null;
+  document.getElementById('breedName').textContent=top?(top.breed_display||top.breed):'Unknown';
+  document.getElementById('breedOrigin').textContent=top?'📍 Identified Breed':'';
+  document.getElementById('infoGrid').innerHTML=`
+    <div class="info-card"><div class="ik">🎯 Confidence</div><div class="iv">${top?top.confidence+'%':'—'}</div></div>
+    <div class="info-card"><div class="ik">🧾 Model</div><div class="iv">ResNet18</div></div>
+    <div class="info-card"><div class="ik">🌐 Endpoint</div><div class="iv">/predict/breed</div></div>
+    <div class="info-card"><div class="ik">🏷️ Top Picks</div><div class="iv">${picks.length}</div></div>
+  `;
+  const colors=['linear-gradient(90deg,var(--c1),var(--c3))','linear-gradient(90deg,var(--pu),var(--c2))','linear-gradient(90deg,var(--bl),var(--pu))','linear-gradient(90deg,var(--mt),var(--bl))','linear-gradient(90deg,var(--c4),var(--pu))'];
+  document.getElementById('topPreds').innerHTML=picks.map((p,i)=>`<div class="pred-item"><span class="pred-rank">#${i+1}</span><span class="pred-name">${p.breed_display||p.breed||'-'}</span><div class="pred-bar"><div class="pred-fill" style="background:${colors[i]};width:${p.confidence}%;"></div></div><span class="pred-pct">${p.confidence}%</span></div>`).join('');
+  if(!suppressShow){
+    document.getElementById('breedResult').classList.add('show');
+    document.getElementById('diseaseResult').classList.remove('show');
+    document.getElementById('resultTabs').style.display='none';
+  }
+  setTimeout(()=>{
+    document.getElementById('confFill').style.width=(top?top.confidence:0)+'%';
+    document.getElementById('confPct').textContent=(top?top.confidence:0)+'%';
+  },100);
+}
+
+/* ══════════════════════════════════════
+   SHOW DISEASE RESULT ★ NEW ★
+══════════════════════════════════════ */
+function showDiseaseResult(data,suppressShow){
+  // backend: {success, predictions:[{display, confidence, severity, description, treatment, normalized_key, key}], top_disease, ...}
+  // frontend mock: array objects with {label, sub, severity, symptoms...}
+  const preds=data.predictions||[];
+
+  // If backend sends correct format, adapt UI.
+  const isBackend = Array.isArray(preds) && preds.length > 0 && preds[0] && (preds[0].display || preds[0].normalized_key || preds[0].treatment);
+
+  const displayPreds = isBackend
+    ? preds
+    : (data.predictions || getMockDiseasePredictions());
+
+  const top = displayPreds[0];
+  lastDiseaseResult = top;
+
+  const isMock = data._mock ? '⚠️ Demo Mode (Backend not connected)' : '✅ Live Model Result';
+
+  // normalize css key
+  let cssKey = (isBackend ? (top.normalized_key || 'healthy') : (top.key || 'healthy'));
+  if(cssKey==='lumpy') cssKey='lsd';
+  if(cssKey==='foot-and-mouth') cssKey='fmd';
+  if(cssKey==='healthy') cssKey='healthy';
+
+  // Name & description
+  const diseaseName = isBackend ? (top.display || 'Unknown') : (top.label || 'Unknown');
+  const diseaseSub = isBackend ? (top.description || '') : (top.sub || '');
+
+  document.getElementById('diseaseName').textContent = diseaseName;
+  document.getElementById('diseaseName').className = 'disease-name ' + cssKey;
+  document.getElementById('diseaseSub').textContent = diseaseSub;
+
+  // Severity badge
+  const severityText = isBackend ? (top.severity || 'HEALTHY') : (top.severity || 'HEALTHY');
+  const sevClass = isBackend
+    ? (cssKey==='healthy' ? 'dsev-healthy' : (cssKey==='lsd' ? 'dsev-high' : (cssKey==='fmd' ? 'dsev-high' : (cssKey==='mastitis' ? 'dsev-moderate' : 'dsev-moderate'))))
+    : (top.sevClass || 'dsev-healthy');
+
+  document.getElementById('diseaseSeverityBadge').innerHTML = `
+    <span class="disease-severity-badge ${sevClass}">
+      ${severityText}
+    </span>
+    <span style="font-size:0.7rem;color:var(--mt);margin-left:8px;">${isMock}</span>
+  `;
+
+  // Confidence bar
+  const conf = isBackend ? (top.confidence || 0) : (top.confidence || 0);
+  document.getElementById('diseaseConfPct').textContent = conf + '%';
+  setTimeout(()=>{
+    const fill=document.getElementById('diseaseConfFill');
+    fill.style.width=conf+'%';
+    fill.className='disease-conf-fill '+cssKey;
+  },100);
+
+  // Info grid
+  const infoColor = isBackend
+    ? 'var(--c1)'
+    : (top.infoColor||'var(--c1)');
+  document.getElementById('diseaseInfoGrid').innerHTML=`
+    <div class="d-info-card"><div class="ik">🎯 Confidence</div><div class="iv" style="color:${infoColor}">${conf}%</div></div>
+    <div class="d-info-card"><div class="ik">⚡ Risk Level</div><div class="iv">${severityText}</div></div>
+    <div class="d-info-card"><div class="ik">🧾 Model</div><div class="iv">Disease CNN</div></div>
+    <div class="d-info-card"><div class="ik">📊 Candidates</div><div class="iv">${displayPreds.length} classes</div></div>
+  `;
+
+  // All predictions
+  const dcolors=['linear-gradient(90deg,var(--c2),#ff6b35)','linear-gradient(90deg,var(--c4),var(--c2))','linear-gradient(90deg,var(--bl),var(--pu))','linear-gradient(90deg,var(--mt),var(--bl))','linear-gradient(90deg,var(--c3),var(--c1))'];
+  document.getElementById('diseasePreds').innerHTML = displayPreds.map((p,i)=>{
+    const name = isBackend ? (p.display || p.normalized_key || p.key) : (p.label || p.key);
+    const c = p.confidence || 0;
+    return `
+      <div class="dpred-item">
+        <span class="pred-rank">#${i+1}</span>
+        <span class="pred-name">${name}</span>
+        <div class="pred-bar"><div class="pred-fill" style="background:${dcolors[i%dcolors.length]};width:${c}%;"></div></div>
+        <span class="pred-pct">${c}%</span>
+      </div>`;
+  }).join('');
+
+  // Symptoms box: backend has no symptoms; show description instead
+  if(isBackend){
+    document.getElementById('symptomsBox').innerHTML = `
+      <div class="symptoms-title">⚠️ Detected Symptoms (from description)</div>
+      <span class="symptom-tag">📝 ${diseaseSub || 'No description provided.'}</span>
+    `;
+  } else {
+    const sHTML=top.symptomsNormal
+      ?top.symptoms.map(s=>`<span class="symptom-tag none">✅ ${s}</span>`).join('')
+      :top.symptoms.map(s=>`<span class="symptom-tag">⚠️ ${s}</span>`).join('');
+    document.getElementById('symptomsBox').innerHTML=`
+      <div class="symptoms-title">${top.symptomsNormal?'✅ Normal Signs Observed':'⚠️ Detected Symptoms'}</div>
+      ${sHTML}
+    `;
+  }
+
+  // Vet urgency / treatment
+  if(isBackend){
+    const treatment = Array.isArray(top.treatment) ? top.treatment : [];
+    document.getElementById('vetUrgency').innerHTML = `
+      <div class="vet-icon">${cssKey==='healthy'?'🩺':'🚨'}</div>
+      <div class="vet-text"><strong>Veterinary Action:</strong><br/>${(treatment.length?('• '+treatment.join('<br/>• ')):'Consult a veterinarian for advice.')}
+      </div>
+    `;
+  } else {
+    document.getElementById('vetUrgency').innerHTML=`
+      <div class="vet-icon">${top.severity==='HEALTHY'||top.severity==='healthy'?'🩺':'🚨'}</div>
+      <div class="vet-text"><strong>Veterinary Action:</strong><br/>${top.vet||''}</div>
+    `;
+  }
+
+  if(!suppressShow){
+    document.getElementById('diseaseResult').classList.add('show');
+    document.getElementById('breedResult').classList.remove('show');
+    document.getElementById('resultTabs').style.display='none';
+    document.getElementById('placeholderMsg').style.display='none';
+  }
+}
+
+/* ══════════════════════════════════════
+   SPEAK
+══════════════════════════════════════ */
+function speakResult(){
+  const name=document.getElementById('breedName').textContent;
+  if(!name||name==='—')return;
+  const lang=document.getElementById('langSelect').value;
+  const pct=document.getElementById('confPct').textContent;
+  const u=new SpeechSynthesisUtterance(`Detection complete. The cattle breed is ${name}, with ${pct} confidence.`);
+  u.lang=lang;u.rate=0.88;u.pitch=1.05;
+  speechSynthesis.cancel();speechSynthesis.speak(u);
+}
+function speakDiseaseResult(){
+  if(!lastDiseaseResult)return;
+  const lang=document.getElementById('langSelect').value;
+  const u=new SpeechSynthesisUtterance(`Disease analysis complete. Result: ${lastDiseaseResult.label}. Confidence: ${lastDiseaseResult.confidence} percent. ${lastDiseaseResult.sub||''}`);
+  u.lang=lang;u.rate=0.88;u.pitch=1.05;
+  speechSynthesis.cancel();speechSynthesis.speak(u);
+}
+
+/* ══════════════════════════════════════
+   BREEDS DATA
+══════════════════════════════════════ */
+const breeds=[
+  {name:"Gir",origin:"India (Gujarat)",icon:"🐄",milk:"12–18 L/day",weight:"400–475 kg",color:"Red & White",purpose:"Dairy",desc:"Highly productive Indian breed known for disease resistance and heat tolerance."},
+  {name:"Holstein Friesian",origin:"Netherlands",icon:"🐮",milk:"25–40 L/day",weight:"580–680 kg",color:"Black & White",purpose:"Dairy",desc:"World's highest milk-producing breed, dominant in commercial dairy operations."},
+  {name:"Sahiwal",origin:"Pakistan / India",icon:"🐄",milk:"10–16 L/day",weight:"350–450 kg",color:"Reddish Brown",purpose:"Dual",desc:"Excellent heat-tolerant dairy breed preferred in tropical regions."},
+  {name:"Jersey",origin:"Channel Islands, UK",icon:"🐮",milk:"16–24 L/day",weight:"350–450 kg",color:"Fawn / Brown",purpose:"Dairy",desc:"Small efficient breed with highest butterfat content (~5%) among dairy cattle."},
+  {name:"Kangayam",origin:"India (Tamil Nadu)",icon:"🐃",milk:"3–5 L/day",weight:"300–400 kg",color:"Grey / White",purpose:"Draft",desc:"Hardy draft breed used in agriculture, adapts well to arid conditions."},
+  {name:"Brown Swiss",origin:"Switzerland",icon:"🐄",milk:"20–28 L/day",weight:"550–640 kg",color:"Brown",purpose:"Dual",desc:"One of the oldest breeds, valued for high protein milk and longevity."},
+  {name:"Red Sindhi",origin:"Pakistan",icon:"🐄",milk:"8–12 L/day",weight:"350–420 kg",color:"Deep Red",purpose:"Dairy",desc:"Tick-resistant zebu breed popular across South Asia and tropical Africa."},
+  {name:"Kankrej",origin:"India (Gujarat/Rajasthan)",icon:"🐃",milk:"5–8 L/day",weight:"400–550 kg",color:"Silver Grey",purpose:"Draft/Dual",desc:"Strong draft cattle, ancestors of the Brahman breed in the Americas."},
+];
+function renderBreedCards(){
+  const c=document.getElementById('breedCards');
+  if(c.innerHTML)return;
+  c.innerHTML=breeds.map(b=>`<div class="breed-card"><div class="bci">${b.icon}</div><div class="bcn">${b.name}</div><div class="bco">📍 ${b.origin}</div><div class="bcd">${b.desc}</div><div class="bct"><span class="btag bt1">${b.purpose}</span><span class="btag bt2">${b.milk}</span></div></div>`).join('');
+}
+
+/* ══════════════════════════════════════
+   REPORT
+══════════════════════════════════════ */
+function showReport(){
+  const b=lastResult||{name:'N/A',origin:'',milk:'',weight:'',color:'',purpose:''};
+  const d=lastDiseaseResult;
+  const now=new Date();
+  document.getElementById('reportBody').innerHTML=`
+    <div class="rpt-section">
+      <div class="rpt-title">🆔 Identification Report</div>
+      <div class="rpt-grid">
+        <div class="rpt-row"><span class="rpt-key">Report ID</span><span class="rpt-val">RPT-${Math.floor(Math.random()*90000+10000)}</span></div>
+        <div class="rpt-row"><span class="rpt-key">Date/Time</span><span class="rpt-val">${now.toLocaleString()}</span></div>
+        <div class="rpt-row"><span class="rpt-key">Breed Detected</span><span class="rpt-val good">${b.name}</span></div>
+        <div class="rpt-row"><span class="rpt-key">Disease Status</span><span class="rpt-val ${d&&d.key!=='healthy'?'bad':'good'}">${d?d.label:'—'}</span></div>
+        <div class="rpt-row"><span class="rpt-key">Breed Confidence</span><span class="rpt-val good">${document.getElementById('confPct').textContent||'—'}</span></div>
+        <div class="rpt-row"><span class="rpt-key">Disease Confidence</span><span class="rpt-val ${d&&d.key!=='healthy'?'warn':'good'}">${d?d.confidence+'%':'—'}</span></div>
+      </div>
+    </div>
+    ${d?`<div class="rpt-section">
+      <div class="rpt-title">🧫 Disease Summary</div>
+      <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:14px;font-size:0.82rem;color:rgba(232,238,255,0.8);line-height:1.8;">
+        <strong style="color:var(--c4);">${d.label}</strong> — ${d.sub||''}<br/>
+        <strong>Symptoms:</strong> ${(d.symptoms||[]).join(', ')}<br/>
+        <strong>Action:</strong> ${d.vet||'Consult veterinarian'}
+      </div>
+    </div>`:''}
+    <div class="rpt-section">
+      <div class="rpt-title">🏥 Health Assessment</div>
+      <div class="health-bar-wrap">
+        <div class="health-bar-label"><span>Overall Health</span><span style="color:var(--c3)">Good</span></div>
+        <div class="hb"><div class="hb-fill" style="width:82%;background:linear-gradient(90deg,var(--c1),var(--c3));"></div></div>
+        <div class="health-bar-label"><span>Nutrition</span><span style="color:var(--c3)">Good</span></div>
+        <div class="hb"><div class="hb-fill" style="width:75%;background:linear-gradient(90deg,var(--c4),var(--c3));"></div></div>
+        <div class="health-bar-label"><span>Milk Production</span><span style="color:var(--c4)">Moderate</span></div>
+        <div class="hb"><div class="hb-fill" style="width:65%;background:linear-gradient(90deg,var(--pu),var(--c4));"></div></div>
+      </div>
+    </div>
+    <button class="download-btn" onclick="alert('PDF download — connect Flask backend to generate PDF!')">⬇ Download Report (PDF)</button>
+  `;
+  document.getElementById('reportModal').classList.add('show');
+}
+
+/* ══════════════════════════════════════
+   DASHBOARD
+══════════════════════════════════════ */
+function showDash(){
+  const d=lastDiseaseResult || {};
+
+  // Backend keys: display / severity / normalized_key / treatment / description
+  // Mock keys: label / sevClass / symptomsNormal / vet / sub / treatment (usually not present)
+  const topDiseaseName = d.display || d.label || '—';
+  const diseaseConf = (typeof d.confidence !== 'undefined') ? d.confidence : 0;
+
+  // Map severity into CSS theme color
+  const sevKey = d.normalized_key || d.key || '';
+  const sevText = d.severity || d.sevClass || '';
+
+  const sevColor = (sevText==='high' || sevKey==='foot-and-mouth' || sevKey==='lumpy')
+    ? 'var(--c2)'
+    : (sevText==='medium' || sevKey==='mastitis' || sevKey==='lsd')
+      ? 'var(--c4)'
+      : 'var(--c3)';
+
+  const diseasePercent = Math.max(0, Math.min(100, Math.round(diseaseConf)));
+  const diseaseHealthyPercent = 100 - diseasePercent;
+
+  const treatmentSteps = (Array.isArray(d.treatment) && d.treatment.length)
+    ? d.treatment
+    : [];
+
+  const descriptionText = d.description || d.sub || '';
+
+  // If backend didn't give treatment, fallback to same generic UI steps already hardcoded in showTreatment()
+  const fallbackSteps = (()=>{
+    // use last known normalized key if present
+    const k = (d.normalized_key || d.key || 'healthy');
+    if(k==='healthy'){
+      return ['✅ Regular feeding, clean water, and vaccination schedule.','✅ Periodic vet checkup every 3 months.'];
+    }
+    if(k==='lumpy'){
+      return ['🔴 Separate from herd immediately.','🔴 Control flies/mosquitoes in shed.','🔴 Apply antiseptic cream on nodules.','🔴 Vet-prescribed antibiotics and anti-inflammatory drugs.'];
+    }
+    if(k==='foot-and-mouth'){
+      return ['🔴 Isolate infected animals immediately.','🔴 Clean wounds with antiseptic solution daily.','🔴 Provide soft food and clean water.','🔴 Contact veterinarian for antiviral and supportive care.'];
+    }
+    if(k==='mastitis'){
+      return ['🟡 Keep udder and bedding clean at all times.','🟡 Warm compress on swollen udder 2–3 times/day.','🟡 Strip milk from infected quarter frequently.','🟡 Intramammary antibiotic as prescribed by vet.'];
+    }
+    // default
+    return ['• Consult veterinarian for patient-specific advice.'];
+  })();
+
+  const finalSteps = (treatmentSteps.length ? treatmentSteps : fallbackSteps).slice(0,4);
+
+  document.getElementById('dashBody').innerHTML=`
+    <div class="dash-grid">
+      <div class="dash-card"><div class="dash-icon">🐄</div><div class="dash-val">247</div><div class="dash-lbl">Total Scans</div></div>
+      <div class="dash-card"><div class="dash-icon">✅</div><div class="dash-val">94%</div><div class="dash-lbl">Accuracy Rate</div></div>
+      <div class="dash-card"><div class="dash-icon">🩺</div><div class="dash-val">${diseasePercent}%</div><div class="dash-lbl">Disease Likelihood</div></div>
+      <div class="dash-card"><div class="dash-icon">⚡</div><div class="dash-val">12ms</div><div class="dash-lbl">Avg Inference</div></div>
+      <div class="dash-card"><div class="dash-icon">📅</div><div class="dash-val">32</div><div class="dash-lbl">Scans Today</div></div>
+      <div class="dash-card"><div class="dash-icon">🏆</div><div class="dash-val">${topDiseaseName}</div><div class="dash-lbl">Top Disease</div></div>
+    </div>
+
+    <div class="dash-chart">
+      <div class="dc-title">Disease Confidence</div>
+      <div style="margin-top:10px;">
+        <div class="health-bar-label"><span>Detected</span><span style="color:${sevColor};font-weight:700;">${diseasePercent}%</span></div>
+        <div class="hb"><div class="hb-fill" style="width:${diseasePercent}%;background:linear-gradient(90deg,var(--c2),${sevColor});"></div></div>
+        <div class="health-bar-label"><span>Healthy Probability</span><span style="color:var(--c3);font-weight:700;">${diseaseHealthyPercent}%</span></div>
+        <div class="hb"><div class="hb-fill" style="width:${diseaseHealthyPercent}%;background:linear-gradient(90deg,var(--c1),var(--c3));"></div></div>
+      </div>
+    </div>
+
+    <div class="dash-chart" style="margin-top:12px;">
+      <div class="dc-title">Disease Treatment Snapshot</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:14px;">
+          <div style="font-family:'Orbitron',monospace;color:var(--c1);letter-spacing:1.5px;text-transform:uppercase;font-size:0.72rem;margin-bottom:8px;">Recommended Steps</div>
+          <div style="color:rgba(232,238,255,0.8);line-height:1.7;font-size:0.82rem;">
+            ${finalSteps.map(s=>`<div>• ${s}</div>`).join('')}
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:12px;padding:14px;">
+          <div style="font-family:'Orbitron',monospace;color:var(--c4);letter-spacing:1.5px;text-transform:uppercase;font-size:0.72rem;margin-bottom:8px;">Risk Notes</div>
+          <div style="color:rgba(232,238,255,0.8);line-height:1.7;font-size:0.82rem;">
+            ${descriptionText ? `<div>${descriptionText}</div>` : '<div>No extra notes available.</div>'}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-chart" style="margin-top:12px;">
+      <div class="dc-title">Breed Distribution</div>
+      <div class="mini-bars" id="dashBars"></div><div style="height:24px;"></div>
+    </div>
+
+    <div class="dash-chart" style="margin-top:12px;">
+      <div class="dc-title">Weekly Scan Activity</div>
+      <div class="mini-bars" id="weekBars"></div><div style="height:24px;"></div>
+    </div>
+  `;
+
+  const bD=[38,22,18,14,8],bL=['Gir','HF','Sahiwal','Jersey','Others'];
+  const bC=['linear-gradient(180deg,#00f5ff,rgba(0,245,255,0.2))','linear-gradient(180deg,#c084fc,rgba(192,132,252,0.2))','linear-gradient(180deg,#ff2d78,rgba(255,45,120,0.2))','linear-gradient(180deg,#aaff00,rgba(170,255,0,0.2))','linear-gradient(180deg,#ffd700,rgba(255,215,0,0.2))'];
+  document.getElementById('dashBars').innerHTML=bD.map((v,i)=>`<div class="mini-bar" data-label="${bL[i]}" style="height:${Math.round((v/40)*70)}px;background:${bC[i]};"></div>`).join('');
+
+  const wD=[18,24,31,22,28,35,32],wL=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  document.getElementById('weekBars').innerHTML=wD.map((v,i)=>`<div class="mini-bar" data-label="${wL[i]}" style="height:${Math.round((v/40)*70)}px;background:linear-gradient(180deg,var(--bl),rgba(59,130,246,0.2));"></div>`).join('');
+
+  document.getElementById('dashModal').classList.add('show');
+}
+
+/* ══════════════════════════════════════
+   TREATMENT
+══════════════════════════════════════ */
+function showTreatment(){
+  document.getElementById('trtBody').innerHTML=`
+    <p style="font-size:0.82rem;color:var(--mt);margin-bottom:20px;line-height:1.7;">
+      ${lastDiseaseResult&&lastDiseaseResult.key!=='healthy'
+        ?`<strong style="color:var(--c2);">Detected: ${lastDiseaseResult.label}</strong> — Recommended treatment neeche diya gaya hai 👇`
+        :'Detected breed ke liye <strong style="color:var(--c1);">kya treatment karni chahiye?</strong> Neeche 4 conditions ka pura ilaj diya gaya hai 👇'}
+    </p>
+
+    <div class="trt-card" style="border-color:rgba(170,255,0,0.2);background:rgba(170,255,0,0.03);">
+      <div class="trt-card-head"><div class="trt-icon">🩺</div><div><div class="trt-name" style="color:var(--c3);">Healthy Animal</div><span class="trt-severity sev-low">HEALTHY</span></div></div>
+      <div class="trt-desc">Animal is healthy. No disease signs detected.</div>
+      <div class="trt-step">✅ Regular feeding, clean water, and vaccination schedule.</div>
+      <div class="trt-step">✅ Periodic vet checkup every 3 months.</div>
+    </div>
+
+    <div class="trt-card" style="border-color:rgba(255,45,120,0.2);">
+      <div class="trt-card-head"><div class="trt-icon">🦠</div><div><div class="trt-name">Foot & Mouth Disease</div><span class="trt-severity sev-high">HIGH RISK</span></div></div>
+      <div class="trt-desc">Highly contagious viral disease. Blisters on mouth, feet, and teats.</div>
+      <div class="trt-step">🔴 Isolate infected animals immediately.</div>
+      <div class="trt-step">🔴 Clean wounds with antiseptic solution daily.</div>
+      <div class="trt-step">🔴 Provide soft food and clean water.</div>
+      <div class="trt-step">🔴 Contact veterinarian for antiviral and supportive care.</div>
+      <div class="trt-meds" style="margin-top:10px;"><span class="trt-med">FMD Vaccine</span><span class="trt-med">Antiseptic Wash</span><span class="trt-med">Vitamin E</span><span class="trt-med">Povidone Iodine</span></div>
+    </div>
+
+    <div class="trt-card" style="border-color:rgba(255,45,120,0.2);">
+      <div class="trt-card-head"><div class="trt-icon">🔴</div><div><div class="trt-name">Lumpy Skin Disease</div><span class="trt-severity sev-high">HIGH RISK</span></div></div>
+      <div class="trt-desc">Viral skin nodules, fever, reduced milk. Spread by insects.</div>
+      <div class="trt-step">🔴 Separate from herd immediately.</div>
+      <div class="trt-step">🔴 Control flies/mosquitoes in shed.</div>
+      <div class="trt-step">🔴 Apply antiseptic cream on nodules.</div>
+      <div class="trt-step">🔴 Vet-prescribed antibiotics and anti-inflammatory drugs.</div>
+      <div class="trt-meds" style="margin-top:10px;"><span class="trt-med">LSD Vaccine</span><span class="trt-med">Antibiotic</span><span class="trt-med">Anti-inflammatory</span><span class="trt-med">Insect Repellent</span></div>
+    </div>
+
+    <div class="trt-card" style="border-color:rgba(255,215,0,0.2);">
+      <div class="trt-card-head"><div class="trt-icon">🥛</div><div><div class="trt-name">Mastitis</div><span class="trt-severity sev-med">MODERATE</span></div></div>
+      <div class="trt-desc">Udder inflammation. Swollen udder, abnormal milk, reduced production.</div>
+      <div class="trt-step">🟡 Keep udder and bedding clean at all times.</div>
+      <div class="trt-step">🟡 Warm compress on swollen udder 2–3 times/day.</div>
+      <div class="trt-step">🟡 Strip milk from infected quarter frequently.</div>
+      <div class="trt-step">🟡 Intramammary antibiotic as prescribed by vet.</div>
+      <div class="trt-meds" style="margin-top:10px;"><span class="trt-med">Amoxicillin</span><span class="trt-med">Intramammary Infusion</span><span class="trt-med">Iodine Teat Dip</span><span class="trt-med">Oxytocin</span></div>
+    </div>
+
+    <div class="trt-card" style="border-color:rgba(59,130,246,0.2);">
+      <div class="trt-card-head"><div class="trt-icon">🫁</div><div><div class="trt-name" style="color:var(--bl);">Bovine Respiratory Disease</div><span class="trt-severity sev-med">MODERATE</span></div></div>
+      <div class="trt-desc">Respiratory infection. Coughing, nasal discharge, loss of appetite.</div>
+      <div class="trt-step">🔵 Isolate animal. Keep warm and dry.</div>
+      <div class="trt-step">🔵 Monitor breathing rate and temperature.</div>
+      <div class="trt-step">🔵 Reduce stress and provide good nutrition.</div>
+      <div class="trt-step">🔵 Antibiotic + anti-inflammatory treatment by vet.</div>
+      <div class="trt-meds" style="margin-top:10px;"><span class="trt-med">Florfenicol</span><span class="trt-med">Meloxicam</span><span class="trt-med">BRD Vaccine</span><span class="trt-med">Supportive Care</span></div>
+    </div>
+
+    <div style="background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.15);border-radius:10px;padding:14px;margin-top:6px;font-size:0.8rem;color:rgba(232,238,255,0.7);line-height:1.8;">
+      ⚠️ <strong style="color:var(--c4);">Disclaimer:</strong> Yeh ek general guide hai. Treatment se pehle licensed veterinarian se zaroor salah lein.
+    </div>
+  `;
+  document.getElementById('trtModal').classList.add('show');
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');});});
+</script>
+</body>
+</html>
