@@ -2,6 +2,12 @@
 
 AI-powered cattle breed classification web app using ResNet-18.
 
+## 🚀 Live Demo
+
+The Cattle Breed and Disease Recognition System is deployed on Render.
+
+[Click Here to Open the Live Application](https://cattle-breed-disease-recognition.onrender.com)
+
 ## Features
 - Identifies 73 cattle breeds (Indian indigenous, buffalo, international dairy)
 - Returns top-5 predictions with confidence scores
