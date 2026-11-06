@@ -2,6 +2,10 @@ import os
 import io
 import torch
 import torch.nn as nn
+import gc
+
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
 import torchvision.models as models
 import torchvision.transforms as transforms
 from PIL import Image
@@ -169,6 +173,9 @@ else:
     breed_model.load_state_dict(breed_state_dict, strict=False)
     breed_model.to(device).eval()
 
+    del breed_ckpt_obj, breed_state_dict
+    gc.collect()
+
   
     disease_ckpt_obj = torch.load(DISEASE_MODEL_PATH, map_location=device)
     disease_class_names, disease_state_dict = _load_checkpoint_generic(
@@ -193,6 +200,9 @@ else:
     disease_model.fc = nn.Linear(disease_model.fc.in_features, len(DISEASE_CLASSES))
     disease_model.load_state_dict(disease_state_dict, strict=False)
     disease_model.to(device).eval()
+
+    del disease_ckpt_obj, disease_state_dict
+    gc.collect()
 
 
 transform = transforms.Compose([
@@ -278,9 +288,12 @@ def load_image(file):
 
 def run_model(model, img):
     tensor = transform(img).unsqueeze(0).to(device)
-    with torch.no_grad():
-        probs = torch.softmax(model(tensor), dim=1)[0]
+
+    with torch.inference_mode():
+        output = model(tensor)
+        probs = torch.softmax(output, dim=1)[0]
         top_probs, top_idx = torch.topk(probs, min(5, len(probs)))
+
     return top_probs.tolist(), top_idx.tolist()
 
 
